@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:local_auth/local_auth.dart'; // Import local_auth
 import '../../routes/app_routes.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -12,12 +13,117 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
+  bool _isLoading = false; // State untuk loading
+
+  // Inisialisasi LocalAuthentication
+  final LocalAuthentication _localAuth = LocalAuthentication();
 
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  // Fungsi untuk autentikasi sidik jari
+  Future<bool> _authenticateWithBiometrics() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Periksa apakah perangkat mendukung biometrik
+      bool canCheckBiometrics = await _localAuth.canCheckBiometrics;
+      bool isDeviceSupported = await _localAuth.isDeviceSupported();
+
+      if (!canCheckBiometrics || !isDeviceSupported) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Perangkat ini tidak mendukung autentikasi biometrik. Silakan gunakan login manual.'),
+          ),
+        );
+        return false;
+      }
+
+      // Periksa biometrik yang tersedia
+      List<BiometricType> availableBiometrics = await _localAuth.getAvailableBiometrics();
+      print('Available biometrics: $availableBiometrics'); // Debugging
+
+      if (availableBiometrics.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tidak ada biometrik yang tersedia. Silakan daftarkan biometrik di pengaturan perangkat.'),
+          ),
+        );
+        return false;
+      }
+
+      // Periksa apakah ada biometrik yang bisa digunakan
+      bool hasBiometric = availableBiometrics.contains(BiometricType.fingerprint) ||
+          availableBiometrics.contains(BiometricType.face) ||
+          availableBiometrics.contains(BiometricType.strong) ||
+          availableBiometrics.contains(BiometricType.weak);
+
+      if (!hasBiometric) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tidak ada biometrik yang kompatibel. Silakan daftarkan sidik jari atau gunakan login manual.'),
+          ),
+        );
+        return false;
+      }
+
+      // Lakukan autentikasi
+      bool authenticated = await _localAuth.authenticate(
+        localizedReason: 'Gunakan sidik jari untuk login ke SSO Authenticator',
+        options: const AuthenticationOptions(
+          biometricOnly: true, // Hanya izinkan biometrik
+          stickyAuth: true, // Tetap aktif meskipun aplikasi di-background
+          useErrorDialogs: true, // Gunakan dialog error bawaan sistem
+        ),
+      );
+
+      if (authenticated) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Autentikasi biometrik berhasil')),
+        );
+      } else {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Autentikasi Gagal'),
+            content: const Text('Autentikasi sidik jari gagal. Apakah Anda ingin mencoba lagi atau menggunakan login manual?'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _authenticateWithBiometrics(); // Coba lagi
+                },
+                child: const Text('Coba Lagi'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('Login Manual'),
+              ),
+            ],
+          ),
+        );
+      }
+
+      return authenticated;
+    } catch (e) {
+      print('Error during biometric authentication: $e'); // Debugging
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Terjadi kesalahan: $e')),
+      );
+      return false;
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -190,11 +296,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: 50,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: () {
-                          // Logika untuk login dengan sidik jari
-                          // Untuk saat ini, kita arahkan ke halaman utama
-                          Navigator.pushReplacementNamed(context, AppRoutes.main);
-                        },
+                        onPressed: _isLoading
+                            ? null // Nonaktifkan tombol saat loading
+                            : () async {
+                                bool isAuthenticated = await _authenticateWithBiometrics();
+                                if (isAuthenticated) {
+                                  Navigator.pushReplacementNamed(context, AppRoutes.main);
+                                }
+                              },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFFFA726), // Tombol oranye
                           shape: RoundedRectangleBorder(
@@ -203,11 +312,20 @@ class _LoginScreenState extends State<LoginScreen> {
                           elevation: 5,
                           padding: const EdgeInsets.all(0), // Hilangkan padding default
                         ),
-                        child: const Icon(
-                          Icons.fingerprint,
-                          color: Colors.white,
-                          size: 30,
-                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 30,
+                                height: 30,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 3,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.fingerprint,
+                                color: Colors.white,
+                                size: 30,
+                              ),
                       ),
                     ),
                   ],
