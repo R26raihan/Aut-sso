@@ -6,7 +6,9 @@ import '../Activity/article_screen.dart';
 import '../Activity/settings_screen.dart';
 
 class MainPage extends StatefulWidget {
-  const MainPage({super.key});
+  final String? pin; // Tambahkan parameter pin
+
+  const MainPage({super.key, this.pin});
 
   @override
   State<MainPage> createState() => _MainPageState();
@@ -35,6 +37,19 @@ class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin
     _animation = Tween<double>(begin: 0.9, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
+
+    // Tampilkan SnackBar jika pin tidak null
+    if (widget.pin != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login dengan PIN berhasil'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      });
+    }
   }
 
   void _onItemTapped(int index) {
