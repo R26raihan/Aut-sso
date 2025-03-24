@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.USE_FINGERPRINT"/>
     <!-- Tambahkan permission untuk kamera (diperlukan untuk QR code scanning) -->
     <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     
     <!-- Fitur fingerprint dan kamera didefinisikan sebagai opsional -->
     <uses-feature android:name="android.hardware.fingerprint" android:required="false"/>

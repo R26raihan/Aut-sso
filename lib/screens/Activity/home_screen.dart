@@ -5,9 +5,13 @@ import './notif/notif_screen.dart'; // Impor NotifScreen
 import './article_screen.dart'; // Impor ArticleScreen
 import '../QR/add_account.dart'; // Impor AddAccountScreen
 import 'package:flutter/services.dart'; // Untuk fungsi copy
+import '../Activity/account_setting/account_setting.dart'; // Impor AccountSettingScreen
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final String? pin; // Tambahkan parameter pin untuk menampilkan SnackBar
+
+  const HomeScreen({super.key, this.pin});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -33,6 +37,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Timer untuk memperbarui kode setiap 1 menit
     _startTimer();
+
+    // Tampilkan SnackBar jika pin tidak null
+    if (widget.pin != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login dengan PIN berhasil'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      });
+    }
   }
 
   void _startTimer() {
@@ -280,67 +297,76 @@ class _HomeScreenState extends State<HomeScreen> {
                       itemCount: banners.length,
                       itemBuilder: (context, index) {
                         final banner = banners[index];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          child: Container(
-                            width: 250, // Lebar setiap banner
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [
-                                  Color(0xFF6422FF), // Ungu
-                                  Color(0xFFFFA726), // Oranye
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(15),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 5,
-                                  offset: const Offset(0, 3),
+                        return GestureDetector(
+                          onTap: () {
+                            // Navigasi ke ArticleScreen saat banner diklik
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const ArticleScreen()),
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                            child: Container(
+                              width: 250, // Lebar setiap banner
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF6422FF), // Ungu
+                                    Color(0xFFFFA726), // Oranye
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
-                              ],
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Row(
-                                children: [
-                                  // Ikon
-                                  Icon(
-                                    banner['icon'] as IconData,
-                                    color: Colors.white,
-                                    size: 40,
-                                  ),
-                                  const SizedBox(width: 10),
-                                  // Judul dan Deskripsi
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          banner['title'] as String,
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 5),
-                                        Text(
-                                          banner['description'] as String,
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.white70,
-                                          ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
-                                    ),
+                                borderRadius: BorderRadius.circular(15),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 5,
+                                    offset: const Offset(0, 3),
                                   ),
                                 ],
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Row(
+                                  children: [
+                                    // Ikon
+                                    Icon(
+                                      banner['icon'] as IconData,
+                                      color: Colors.white,
+                                      size: 40,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    // Judul dan Deskripsi
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            banner['title'] as String,
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 5),
+                                          Text(
+                                            banner['description'] as String,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.white70,
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -368,6 +394,23 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Teks "Authenticator Code" di bawah banner
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Authenticator Code',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF6422FF), // Warna ungu
                     ),
                   ),
                 ],
@@ -474,6 +517,26 @@ class _HomeScreenState extends State<HomeScreen> {
                                             borderRadius: BorderRadius.circular(10),
                                           ),
                                           duration: const Duration(seconds: 2),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  // Tombol tanda titik tiga (menu)
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.more_vert,
+                                      color: Color(0xFF6422FF), // Warna ungu
+                                      size: 20,
+                                    ),
+                                    onPressed: () {
+                                      // Navigasi ke AccountSettingScreen dengan data akun
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => AccountSettingScreen(
+                                            appName: app['name'] as String,
+                                            username: app['username'] as String,
+                                          ),
                                         ),
                                       );
                                     },
